@@ -215,7 +215,16 @@ def run_tournament(
     seed: int | None = None,
 ) -> list[dict[str, object]]:
     standings = {
-        name: {"points": 0, "score": 0, "value": 0, "category_bonus": 0, "money_left": 0}
+        name: {
+            "points": 0,
+            "wins": 0,
+            "draws": 0,
+            "matches": 0,
+            "score": 0,
+            "value": 0,
+            "category_bonus": 0,
+            "money_left": 0,
+        }
         for name in discover_bots()
     }
     items = generate_items(
@@ -230,6 +239,8 @@ def run_tournament(
 
     results = run_round_robin(list(standings), _play)
     for left, right, result in results:
+        standings[left]["matches"] += 1
+        standings[right]["matches"] += 1
         standings[left]["score"] += result.left_score
         standings[right]["score"] += result.right_score
         standings[left]["value"] += result.left_value
@@ -241,16 +252,35 @@ def run_tournament(
 
         if result.left_score > result.right_score:
             standings[left]["points"] += 3
+            standings[left]["wins"] += 1
         elif result.left_score < result.right_score:
             standings[right]["points"] += 3
+            standings[right]["wins"] += 1
         else:
             standings[left]["points"] += 1
             standings[right]["points"] += 1
+            standings[left]["draws"] += 1
+            standings[right]["draws"] += 1
 
     ordered = []
     for name, values in standings.items():
-        ordered.append({"bot": name, **values})
+        matches = int(values["matches"])
+        wins = int(values["wins"])
+        ordered.append(
+            {
+                "bot": name,
+                **values,
+                "win_rate": (wins / matches) if matches else 0.0,
+            }
+        )
     ordered.sort(
-        key=lambda item: (-item["points"], -item["score"], -item["value"], -item["money_left"], item["bot"])
+        key=lambda item: (
+            -item["win_rate"],
+            -item["wins"],
+            -item["score"],
+            -item["value"],
+            -item["money_left"],
+            item["bot"],
+        )
     )
     return ordered

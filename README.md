@@ -1,5 +1,18 @@
 # Auction Game Prototype
 
+<!-- leaderboard:start -->
+## Latest Leaderboard
+
+Last run config: `budget=200000000` `items=20` `min_value=11000000` `max_value=20000000` `seed=7`
+
+| Rank | Bot | Win Rate | Wins | Matches | Score |
+| --- | --- | --- | --- | --- | --- |
+| 1 | category_collector | 100.0% | 2 | 2 | 383065548 |
+| 2 | greedy_value | 50.0% | 1 | 2 | 325569674 |
+| 3 | steady_bidder | 0.0% | 0 | 2 | 289099494 |
+
+<!-- leaderboard:end -->
+
 This repository contains a lightweight tournament engine for the conference
 auction game. It is designed to be fast enough for all-vs-all evaluation on
 each submission.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import random
+from pathlib import Path
 
 from auction_game.engine import (
     DEFAULT_BUDGET,
@@ -12,6 +13,72 @@ from auction_game.engine import (
     play_match,
     run_tournament,
 )
+
+README_PATH = Path(__file__).resolve().parent.parent / "README.md"
+LEADERBOARD_START = "<!-- leaderboard:start -->"
+LEADERBOARD_END = "<!-- leaderboard:end -->"
+
+
+def _format_win_rate(win_rate: float) -> str:
+    return f"{win_rate * 100:.1f}%"
+
+
+def _build_leaderboard_section(
+    standings: list[dict[str, object]],
+    *,
+    budget: int,
+    item_count: int,
+    min_value: int,
+    max_value: int,
+    seed: int,
+) -> str:
+    lines = [
+        LEADERBOARD_START,
+        "## Latest Leaderboard",
+        "",
+        f"Last run config: `budget={budget}` `items={item_count}` `min_value={min_value}` `max_value={max_value}` `seed={seed}`",
+        "",
+        "| Rank | Bot | Win Rate | Wins | Matches | Score |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for index, row in enumerate(standings, start=1):
+        lines.append(
+            f"| {index} | {row['bot']} | {_format_win_rate(float(row['win_rate']))} | "
+            f"{row['wins']} | {row['matches']} | {row['score']} |"
+        )
+    lines.extend(["", LEADERBOARD_END])
+    return "\n".join(lines)
+
+
+def update_readme_leaderboard(
+    standings: list[dict[str, object]],
+    *,
+    budget: int,
+    item_count: int,
+    min_value: int,
+    max_value: int,
+    seed: int,
+) -> None:
+    leaderboard = _build_leaderboard_section(
+        standings,
+        budget=budget,
+        item_count=item_count,
+        min_value=min_value,
+        max_value=max_value,
+        seed=seed,
+    )
+    current = README_PATH.read_text()
+    if LEADERBOARD_START in current and LEADERBOARD_END in current:
+        start = current.index(LEADERBOARD_START)
+        end = current.index(LEADERBOARD_END) + len(LEADERBOARD_END)
+        updated = current[:start] + leaderboard + current[end:]
+    else:
+        title_end = current.find("\n")
+        if title_end == -1:
+            updated = leaderboard
+        else:
+            updated = current[: title_end + 1] + "\n" + leaderboard + "\n\n" + current[title_end + 1 :].lstrip("\n")
+    README_PATH.write_text(updated)
 
 
 def main() -> None:
@@ -30,10 +97,19 @@ def main() -> None:
         max_value=args.max_value,
         seed=args.seed,
     )
+    update_readme_leaderboard(
+        standings,
+        budget=args.budget,
+        item_count=args.items,
+        min_value=args.min_value,
+        max_value=args.max_value,
+        seed=args.seed,
+    )
     print("Auction game standings")
     for index, row in enumerate(standings, start=1):
         print(
-            f"{index:>2}. {row['bot']:<20} points={row['points']:<3} "
+            f"{index:>2}. {row['bot']:<20} win_rate={_format_win_rate(float(row['win_rate'])):<6} "
+            f"wins={row['wins']:<3} matches={row['matches']:<3} points={row['points']:<3} "
             f"score={row['score']:<10} value={row['value']:<10} "
             f"bonus={row['category_bonus']:<10} cash={row['money_left']}"
         )
