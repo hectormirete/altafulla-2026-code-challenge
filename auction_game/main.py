@@ -34,7 +34,8 @@ def main() -> None:
     for index, row in enumerate(standings, start=1):
         print(
             f"{index:>2}. {row['bot']:<20} points={row['points']:<3} "
-            f"score={row['score']:<10} value={row['value']:<10} cash={row['money_left']}"
+            f"score={row['score']:<10} value={row['value']:<10} "
+            f"bonus={row['category_bonus']:<10} cash={row['money_left']}"
         )
 
     items = generate_items(
@@ -48,6 +49,7 @@ def main() -> None:
     print(
         f"Score: {sample.left_score} - {sample.right_score} | "
         f"Value: {sample.left_value} - {sample.right_value} | "
+        f"Bonus: {sample.left_category_bonus} - {sample.right_category_bonus} | "
         f"Cash: {sample.left_money_left} - {sample.right_money_left}"
     )
     for line in sample.log[:5]:

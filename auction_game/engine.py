@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,6 +20,8 @@ ITEM_CATEGORIES = ["ai", "web", "brand", "cloud", "dev", "data"]
 class MatchResult:
     left_value: int
     right_value: int
+    left_category_bonus: int
+    right_category_bonus: int
     left_money_left: int
     right_money_left: int
     left_score: int
@@ -86,8 +89,29 @@ def _validate_bid(bid: int, budget: int) -> int:
     return min(bid, budget)
 
 
-def _score_items(items: list[AuctionItem], money_left: int) -> int:
-    return sum(item.value for item in items) + money_left
+def _category_bonus_rate(item_count: int) -> float:
+    raw_rate = 0.06 * max(0, item_count - 1) + 0.02 * max(0, item_count - 3)
+    return min(raw_rate, 0.30)
+
+
+def _category_bonus(items: list[AuctionItem]) -> int:
+    category_values: dict[str, int] = defaultdict(int)
+    category_counts: dict[str, int] = defaultdict(int)
+
+    for item in items:
+        category_values[item.category] += item.value
+        category_counts[item.category] += 1
+
+    total_bonus = 0
+    for category, total_value in category_values.items():
+        total_bonus += int(total_value * _category_bonus_rate(category_counts[category]))
+    return total_bonus
+
+
+def _score_items(items: list[AuctionItem], money_left: int) -> tuple[int, int]:
+    item_value = sum(item.value for item in items)
+    category_bonus = _category_bonus(items)
+    return item_value + category_bonus + money_left, category_bonus
 
 
 def play_match(
@@ -163,11 +187,13 @@ def play_match(
 
     left_value = sum(item.value for item in left_items)
     right_value = sum(item.value for item in right_items)
-    left_score = _score_items(left_items, left_budget)
-    right_score = _score_items(right_items, right_budget)
+    left_score, left_category_bonus = _score_items(left_items, left_budget)
+    right_score, right_category_bonus = _score_items(right_items, right_budget)
     return MatchResult(
         left_value=left_value,
         right_value=right_value,
+        left_category_bonus=left_category_bonus,
+        right_category_bonus=right_category_bonus,
         left_money_left=left_budget,
         right_money_left=right_budget,
         left_score=left_score,
@@ -189,7 +215,7 @@ def run_tournament(
     seed: int | None = None,
 ) -> list[dict[str, object]]:
     standings = {
-        name: {"points": 0, "score": 0, "value": 0, "money_left": 0}
+        name: {"points": 0, "score": 0, "value": 0, "category_bonus": 0, "money_left": 0}
         for name in discover_bots()
     }
     items = generate_items(
@@ -208,6 +234,8 @@ def run_tournament(
         standings[right]["score"] += result.right_score
         standings[left]["value"] += result.left_value
         standings[right]["value"] += result.right_value
+        standings[left]["category_bonus"] += result.left_category_bonus
+        standings[right]["category_bonus"] += result.right_category_bonus
         standings[left]["money_left"] += result.left_money_left
         standings[right]["money_left"] += result.right_money_left
 
