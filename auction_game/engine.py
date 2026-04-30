@@ -5,7 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from auction_game.bot_loader import discover_bot_names, load_bot
+from auction_game.bot_loader import BotSpec, discover_bots, load_bot
 from auction_game.interfaces import AuctionItem, AuctionState
 from auction_game.round_robin import run_round_robin
 
@@ -115,13 +115,18 @@ def _score_items(items: list[AuctionItem], money_left: int) -> tuple[int, int]:
 
 
 def play_match(
-    left_name: str,
-    right_name: str,
+    left_bot_id: str,
+    right_bot_id: str,
     budget: int = DEFAULT_BUDGET,
     items: list[AuctionItem] | None = None,
 ) -> MatchResult:
-    left_bot = load_bot("auction_game.bots", left_name)
-    right_bot = load_bot("auction_game.bots", right_name)
+    bot_specs = {
+        bot_spec.bot_id: bot_spec for bot_spec in discover_bots(Path(__file__).with_name("bots"))
+    }
+    left_spec = bot_specs[left_bot_id]
+    right_spec = bot_specs[right_bot_id]
+    left_bot = load_bot(left_spec)
+    right_bot = load_bot(right_spec)
     match_items = list(items or generate_items())
 
     left_budget = budget
@@ -172,17 +177,17 @@ def play_match(
         if left_bid > right_bid:
             left_budget -= left_bid
             left_items.append(item)
-            winner = left_name
+            winner = left_bot_id
         elif right_bid > left_bid:
             right_budget -= right_bid
             right_items.append(item)
-            winner = right_name
+            winner = right_bot_id
         else:
             winner = "tie"
 
         log.append(
             f"round={round_index + 1} item={item.name} "
-            f"bids={left_name}:{left_bid} {right_name}:{right_bid} winner={winner}"
+            f"bids={left_bot_id}:{left_bid} {right_bot_id}:{right_bid} winner={winner}"
         )
 
     left_value = sum(item.value for item in left_items)
@@ -202,9 +207,14 @@ def play_match(
     )
 
 
-def discover_bots() -> list[str]:
+def discover_bot_ids() -> list[str]:
     bots_dir = Path(__file__).with_name("bots")
-    return discover_bot_names(bots_dir)
+    return [bot_spec.bot_id for bot_spec in discover_bots(bots_dir)]
+
+
+def _discover_bot_map() -> dict[str, BotSpec]:
+    bots_dir = Path(__file__).with_name("bots")
+    return {bot_spec.bot_id: bot_spec for bot_spec in discover_bots(bots_dir)}
 
 
 def run_tournament(
@@ -214,8 +224,11 @@ def run_tournament(
     max_value: int = MAX_ITEM_VALUE,
     seed: int | None = None,
 ) -> list[dict[str, object]]:
+    bot_map = _discover_bot_map()
     standings = {
-        name: {
+        bot_id: {
+            "user_name": bot_spec.user_name,
+            "bot_name": bot_spec.bot_name,
             "points": 0,
             "wins": 0,
             "draws": 0,
@@ -225,7 +238,7 @@ def run_tournament(
             "category_bonus": 0,
             "money_left": 0,
         }
-        for name in discover_bots()
+        for bot_id, bot_spec in bot_map.items()
     }
     items = generate_items(
         item_count=item_count,
@@ -263,12 +276,14 @@ def run_tournament(
             standings[right]["draws"] += 1
 
     ordered = []
-    for name, values in standings.items():
+    for bot_id, values in standings.items():
         matches = int(values["matches"])
         wins = int(values["wins"])
         ordered.append(
             {
-                "bot": name,
+                "bot": values["bot_name"],
+                "user_name": values["user_name"],
+                "bot_id": bot_id,
                 **values,
                 "win_rate": (wins / matches) if matches else 0.0,
             }

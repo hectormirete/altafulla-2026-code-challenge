@@ -38,12 +38,12 @@ def _build_leaderboard_section(
         "",
         f"Last run config: `budget={budget}` `items={item_count}` `min_value={min_value}` `max_value={max_value}` `seed={seed}`",
         "",
-        "| Rank | Bot | Win Rate | Wins | Matches | Score |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Rank | User | Bot | Win Rate | Wins | Matches | Score |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for index, row in enumerate(standings, start=1):
         lines.append(
-            f"| {index} | {row['bot']} | {_format_win_rate(float(row['win_rate']))} | "
+            f"| {index} | {row['user_name']} | {row['bot']} | {_format_win_rate(float(row['win_rate']))} | "
             f"{row['wins']} | {row['matches']} | {row['score']} |"
         )
     lines.extend(["", LEADERBOARD_END])
@@ -108,7 +108,7 @@ def main() -> None:
     print("Auction game standings")
     for index, row in enumerate(standings, start=1):
         print(
-            f"{index:>2}. {row['bot']:<20} win_rate={_format_win_rate(float(row['win_rate'])):<6} "
+            f"{index:>2}. {row['user_name']}/{row['bot']:<30} win_rate={_format_win_rate(float(row['win_rate'])):<6} "
             f"wins={row['wins']:<3} matches={row['matches']:<3} points={row['points']:<3} "
             f"score={row['score']:<10} value={row['value']:<10} "
             f"bonus={row['category_bonus']:<10} cash={row['money_left']}"
@@ -120,8 +120,8 @@ def main() -> None:
         max_value=args.max_value,
         rng=random.Random(args.seed),
     )
-    sample = play_match("greedy_value", "steady_bidder", budget=args.budget, items=items)
-    print("\nSample match: greedy_value vs steady_bidder")
+    sample = play_match("demo-bots/greedy_value", "demo-bots/steady_bidder", budget=args.budget, items=items)
+    print("\nSample match: demo-bots/greedy_value vs demo-bots/steady_bidder")
     print(
         f"Score: {sample.left_score} - {sample.right_score} | "
         f"Value: {sample.left_value} - {sample.right_value} | "

@@ -5,13 +5,15 @@
 
 Last run config: `budget=200000000` `items=20` `min_value=11000000` `max_value=20000000` `seed=7`
 
-| Rank | Bot | Win Rate | Wins | Matches | Score |
-| --- | --- | --- | --- | --- | --- |
-| 1 | category_collector | 100.0% | 2 | 2 | 383065548 |
-| 2 | greedy_value | 50.0% | 1 | 2 | 325569674 |
-| 3 | steady_bidder | 0.0% | 0 | 2 | 289099494 |
+| Rank | User | Bot | Win Rate | Wins | Matches | Score |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | demo-bots | category_collector | 100.0% | 2 | 2 | 383065548 |
+| 2 | demo-bots | greedy_value | 50.0% | 1 | 2 | 325569674 |
+| 3 | demo-bots | steady_bidder | 0.0% | 0 | 2 | 289099494 |
 
 <!-- leaderboard:end -->
+
+## What Is This Project About?
 
 This repository contains a lightweight tournament engine for the conference
 auction game. It is designed to be fast enough for all-vs-all evaluation on
@@ -54,6 +56,12 @@ uv run python -m auction_game.main
 
 Challenge participants should implement a class that inherits from
 `auction_game.AuctionBot` and export it as `BOT_CLASS`.
+
+Bots are discovered from this folder structure:
+
+```text
+auction_game/bots/<user-name>/<bot-name>.py
+```
 
 ```python
 from auction_game import AuctionBot, AuctionState
