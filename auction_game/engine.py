@@ -1,37 +1,62 @@
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 from pathlib import Path
 
 from auction_game.bot_loader import discover_bot_names, load_bot_module
 from auction_game.round_robin import run_round_robin
 
-ITEMS = [
-    {"name": "ml_workshop", "category": "ai", "value": 8},
-    {"name": "frontend_talk", "category": "web", "value": 5},
-    {"name": "keynote_slot", "category": "brand", "value": 10},
-    {"name": "infra_panel", "category": "cloud", "value": 7},
-    {"name": "sponsor_booth", "category": "brand", "value": 6},
-    {"name": "hackathon_room", "category": "dev", "value": 9},
-    {"name": "api_session", "category": "web", "value": 4},
-    {"name": "data_track", "category": "ai", "value": 7},
-]
-SET_BONUS = 6
+DEFAULT_BUDGET = 200_000_000
+DEFAULT_ITEM_COUNT = 20
+MIN_ITEM_VALUE = 11_000_000
+MAX_ITEM_VALUE = 20_000_000
+ITEM_CATEGORIES = ["ai", "web", "brand", "cloud", "dev", "data"]
 
 
 @dataclass(slots=True)
 class MatchResult:
     left_value: int
     right_value: int
-    left_spend: int
-    right_spend: int
+    left_money_left: int
+    right_money_left: int
+    left_score: int
+    right_score: int
     log: list[str]
+
+
+def generate_items(
+    *,
+    item_count: int = DEFAULT_ITEM_COUNT,
+    min_value: int = MIN_ITEM_VALUE,
+    max_value: int = MAX_ITEM_VALUE,
+    rng: random.Random | None = None,
+) -> list[dict[str, object]]:
+    if item_count <= 0:
+        raise ValueError("item_count must be positive")
+    if min_value <= 0 or max_value <= 0:
+        raise ValueError("item values must be positive")
+    if min_value > max_value:
+        raise ValueError("min_value must be less than or equal to max_value")
+
+    generator = rng or random.Random()
+    items: list[dict[str, object]] = []
+    for index in range(item_count):
+        items.append(
+            {
+                "name": f"item_{index + 1}",
+                "category": ITEM_CATEGORIES[index % len(ITEM_CATEGORIES)],
+                "value": generator.randint(min_value, max_value),
+            }
+        )
+    return items
 
 
 def _build_state(
     *,
     round_index: int,
     item: dict[str, object],
+    total_rounds: int,
     my_budget: int,
     opponent_budget: int,
     my_items: list[dict[str, object]],
@@ -41,6 +66,7 @@ def _build_state(
 ) -> dict[str, object]:
     return {
         "round_index": round_index,
+        "total_rounds": total_rounds,
         "item": dict(item),
         "my_budget": my_budget,
         "opponent_budget": opponent_budget,
@@ -59,18 +85,19 @@ def _validate_bid(bid: int, budget: int) -> int:
     return min(bid, budget)
 
 
-def _score_items(items: list[dict[str, object]]) -> int:
-    total = sum(int(item["value"]) for item in items)
-    categories = [str(item["category"]) for item in items]
-    for category in set(categories):
-        if categories.count(category) >= 2:
-            total += SET_BONUS
-    return total
+def _score_items(items: list[dict[str, object]], money_left: int) -> int:
+    return sum(int(item["value"]) for item in items) + money_left
 
 
-def play_match(left_name: str, right_name: str, budget: int = 100) -> MatchResult:
+def play_match(
+    left_name: str,
+    right_name: str,
+    budget: int = DEFAULT_BUDGET,
+    items: list[dict[str, object]] | None = None,
+) -> MatchResult:
     left_bot = load_bot_module("auction_game.bots", left_name)
     right_bot = load_bot_module("auction_game.bots", right_name)
+    match_items = [dict(item) for item in (items or generate_items())]
 
     left_budget = budget
     right_budget = budget
@@ -80,12 +107,13 @@ def play_match(left_name: str, right_name: str, budget: int = 100) -> MatchResul
     right_bids: list[int] = []
     log: list[str] = []
 
-    for round_index, item in enumerate(ITEMS):
+    for round_index, item in enumerate(match_items):
         left_bid = _validate_bid(
             left_bot.choose_bid(
                 _build_state(
                     round_index=round_index,
                     item=item,
+                    total_rounds=len(match_items),
                     my_budget=left_budget,
                     opponent_budget=right_budget,
                     my_items=left_items,
@@ -101,6 +129,7 @@ def play_match(left_name: str, right_name: str, budget: int = 100) -> MatchResul
                 _build_state(
                     round_index=round_index,
                     item=item,
+                    total_rounds=len(match_items),
                     my_budget=right_budget,
                     opponent_budget=left_budget,
                     my_items=right_items,
@@ -131,13 +160,17 @@ def play_match(left_name: str, right_name: str, budget: int = 100) -> MatchResul
             f"bids={left_name}:{left_bid} {right_name}:{right_bid} winner={winner}"
         )
 
-    left_value = _score_items(left_items)
-    right_value = _score_items(right_items)
+    left_value = sum(int(item["value"]) for item in left_items)
+    right_value = sum(int(item["value"]) for item in right_items)
+    left_score = _score_items(left_items, left_budget)
+    right_score = _score_items(right_items, right_budget)
     return MatchResult(
         left_value=left_value,
         right_value=right_value,
-        left_spend=budget - left_budget,
-        right_spend=budget - right_budget,
+        left_money_left=left_budget,
+        right_money_left=right_budget,
+        left_score=left_score,
+        right_score=right_score,
         log=log,
     )
 
@@ -147,22 +180,39 @@ def discover_bots() -> list[str]:
     return discover_bot_names(bots_dir)
 
 
-def run_tournament(budget: int = 100) -> list[dict[str, object]]:
-    standings = {name: {"points": 0, "value": 0, "spend": 0} for name in discover_bots()}
+def run_tournament(
+    budget: int = DEFAULT_BUDGET,
+    item_count: int = DEFAULT_ITEM_COUNT,
+    min_value: int = MIN_ITEM_VALUE,
+    max_value: int = MAX_ITEM_VALUE,
+    seed: int | None = None,
+) -> list[dict[str, object]]:
+    standings = {
+        name: {"points": 0, "score": 0, "value": 0, "money_left": 0}
+        for name in discover_bots()
+    }
+    items = generate_items(
+        item_count=item_count,
+        min_value=min_value,
+        max_value=max_value,
+        rng=random.Random(seed),
+    )
 
     def _play(left: str, right: str) -> MatchResult:
-        return play_match(left, right, budget=budget)
+        return play_match(left, right, budget=budget, items=items)
 
     results = run_round_robin(list(standings), _play)
     for left, right, result in results:
+        standings[left]["score"] += result.left_score
+        standings[right]["score"] += result.right_score
         standings[left]["value"] += result.left_value
         standings[right]["value"] += result.right_value
-        standings[left]["spend"] += result.left_spend
-        standings[right]["spend"] += result.right_spend
+        standings[left]["money_left"] += result.left_money_left
+        standings[right]["money_left"] += result.right_money_left
 
-        if result.left_value > result.right_value:
+        if result.left_score > result.right_score:
             standings[left]["points"] += 3
-        elif result.left_value < result.right_value:
+        elif result.left_score < result.right_score:
             standings[right]["points"] += 3
         else:
             standings[left]["points"] += 1
@@ -171,5 +221,7 @@ def run_tournament(budget: int = 100) -> list[dict[str, object]]:
     ordered = []
     for name, values in standings.items():
         ordered.append({"bot": name, **values})
-    ordered.sort(key=lambda item: (-item["points"], -item["value"], item["spend"], item["bot"]))
+    ordered.sort(
+        key=lambda item: (-item["points"], -item["score"], -item["value"], -item["money_left"], item["bot"])
+    )
     return ordered
