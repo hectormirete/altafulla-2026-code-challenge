@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from auction_game.bot_loader import BotSpec, discover_bots, load_bot
-from auction_game.interfaces import AuctionItem, AuctionState
+from auction_game.interfaces import AuctionItem, AuctionState, MIN_BID_INCREMENT
 from auction_game.round_robin import run_round_robin
 
 DEFAULT_BUDGET = 200_000_000
@@ -89,6 +89,21 @@ def _validate_bid(bid: int, budget: int) -> int:
     return min(bid, budget)
 
 
+def _validate_followup_bid(bid: int, current_bid: int, budget: int) -> int:
+    normalized = _validate_bid(bid, budget)
+    if normalized < current_bid:
+        raise ValueError(f"Follow-up bid must be at least the current bid {current_bid}, got {bid}")
+    return normalized
+
+
+def _apply_minimum_raise(candidate_bid: int, previous_bid: int, opponent_bid: int) -> int:
+    if candidate_bid <= previous_bid:
+        return previous_bid
+    if candidate_bid < opponent_bid + MIN_BID_INCREMENT:
+        return previous_bid
+    return candidate_bid
+
+
 def _category_bonus_rate(item_count: int) -> float:
     raw_rate = 0.06 * max(0, item_count - 1) + 0.02 * max(0, item_count - 3)
     return min(raw_rate, 0.30)
@@ -138,56 +153,82 @@ def play_match(
     log: list[str] = []
 
     for round_index, item in enumerate(match_items):
-        left_bid = _validate_bid(
-            left_bot.choose_bid(
-                _build_state(
-                    round_index=round_index,
-                    item=item,
-                    total_rounds=len(match_items),
-                    my_budget=left_budget,
-                    opponent_budget=right_budget,
-                    my_items=left_items,
-                    opponent_items=right_items,
-                    my_bids=left_bids,
-                    opponent_bids=right_bids,
-                )
-            ),
+        left_state = _build_state(
+            round_index=round_index,
+            item=item,
+            total_rounds=len(match_items),
+            my_budget=left_budget,
+            opponent_budget=right_budget,
+            my_items=left_items,
+            opponent_items=right_items,
+            my_bids=left_bids,
+            opponent_bids=right_bids,
+        )
+        right_state = _build_state(
+            round_index=round_index,
+            item=item,
+            total_rounds=len(match_items),
+            my_budget=right_budget,
+            opponent_budget=left_budget,
+            my_items=right_items,
+            opponent_items=left_items,
+            my_bids=right_bids,
+            opponent_bids=left_bids,
+        )
+
+        left_round_1 = _validate_bid(left_bot.choose_bid_round_1(left_state), left_budget)
+        right_round_1 = _validate_bid(right_bot.choose_bid_round_1(right_state), right_budget)
+
+        left_round_2 = _validate_followup_bid(
+            left_bot.choose_bid_round_2(left_state, left_round_1, right_round_1),
+            left_round_1,
             left_budget,
         )
-        right_bid = _validate_bid(
-            right_bot.choose_bid(
-                _build_state(
-                    round_index=round_index,
-                    item=item,
-                    total_rounds=len(match_items),
-                    my_budget=right_budget,
-                    opponent_budget=left_budget,
-                    my_items=right_items,
-                    opponent_items=left_items,
-                    my_bids=right_bids,
-                    opponent_bids=left_bids,
-                )
-            ),
+        right_round_2 = _validate_followup_bid(
+            right_bot.choose_bid_round_2(right_state, right_round_1, left_round_1),
+            right_round_1,
             right_budget,
         )
 
-        left_bids.append(left_bid)
-        right_bids.append(right_bid)
+        left_round_3 = _validate_followup_bid(
+            left_bot.choose_bid_round_3(left_state, left_round_2, right_round_2),
+            left_round_2,
+            left_budget,
+        )
+        right_round_3 = _validate_followup_bid(
+            right_bot.choose_bid_round_3(right_state, right_round_2, left_round_2),
+            right_round_2,
+            right_budget,
+        )
 
-        if left_bid > right_bid:
-            left_budget -= left_bid
+        left_round_2 = _apply_minimum_raise(left_round_2, left_round_1, right_round_1)
+        right_round_2 = _apply_minimum_raise(right_round_2, right_round_1, left_round_1)
+        left_round_3 = _apply_minimum_raise(left_round_3, left_round_2, right_round_2)
+        right_round_3 = _apply_minimum_raise(right_round_3, right_round_2, left_round_2)
+
+        left_bids.append(left_round_3)
+        right_bids.append(right_round_3)
+
+        if left_round_3 > right_round_3:
+            left_budget -= left_round_3
             left_items.append(item)
             winner = left_bot_id
-        elif right_bid > left_bid:
-            right_budget -= right_bid
+            winning_bid = left_round_3
+        elif right_round_3 > left_round_3:
+            right_budget -= right_round_3
             right_items.append(item)
             winner = right_bot_id
+            winning_bid = right_round_3
         else:
             winner = "tie"
+            winning_bid = left_round_3
 
         log.append(
             f"round={round_index + 1} item={item.name} "
-            f"bids={left_bot_id}:{left_bid} {right_bot_id}:{right_bid} winner={winner}"
+            f"r1={left_bot_id}:{left_round_1}/{right_bot_id}:{right_round_1} "
+            f"r2={left_bot_id}:{left_round_2}/{right_bot_id}:{right_round_2} "
+            f"r3={left_bot_id}:{left_round_3}/{right_bot_id}:{right_round_3} "
+            f"winner={winner} price={winning_bid}"
         )
 
     left_value = sum(item.value for item in left_items)

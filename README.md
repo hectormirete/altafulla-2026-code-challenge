@@ -7,9 +7,11 @@ Last run config: `budget=200000000` `items=20` `min_value=11000000` `max_value=2
 
 | Rank | User | Bot | Win Rate | Wins | Matches | Score |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | demo-bots | category_collector | 100.0% | 2 | 2 | 383065548 |
-| 2 | demo-bots | greedy_value | 50.0% | 1 | 2 | 325569674 |
-| 3 | demo-bots | steady_bidder | 0.0% | 0 | 2 | 289099494 |
+| 1 | demo-bots | greedy_value | 75.0% | 3 | 4 | 744638149 |
+| 2 | demo-bots | budget_burner | 75.0% | 3 | 4 | 701208141 |
+| 3 | demo-bots | copycat_bidder | 50.0% | 2 | 4 | 506397436 |
+| 4 | demo-bots | steady_bidder | 25.0% | 1 | 4 | 777478977 |
+| 5 | demo-bots | random_bidder | 25.0% | 1 | 4 | 522966248 |
 
 <!-- leaderboard:end -->
 
@@ -19,9 +21,11 @@ This repository contains a lightweight tournament engine for the conference
 auction game. It is designed to be fast enough for all-vs-all evaluation on
 each submission.
 
-Each bot gets a `200_000_000` budget by default and competes across `20` blind
-auctions. Item values are generated randomly for each tournament run within a
-configured range, and final score is:
+Each bot gets a `200_000_000` budget by default and competes across `20`
+auctions. Each item is sold through 3 bidding rounds: a blind opening bid, a
+second bid after both opening bids are revealed, and a final third bid after
+the second bids are revealed. Item values are generated randomly for each
+tournament run within a configured range, and final score is:
 
 ```text
 sum(won item values) + category bonuses + money left
@@ -63,18 +67,28 @@ Bots are discovered from this folder structure:
 auction_game/bots/<user-name>/<bot-name>.py
 ```
 
+The repository includes sample bots under `auction_game/bots/demo-bots/`.
+
 ```python
 from auction_game import AuctionBot, AuctionState
 
 
 class MyBot(AuctionBot):
-    def choose_bid(self, state: AuctionState) -> int:
+    def choose_bid_round_1(self, state: AuctionState) -> int:
         return min(state.item.value, state.my_budget)
+
+    def choose_bid_round_2(self, state: AuctionState, my_bid: int, opponent_bid: int) -> int:
+        return max(my_bid, min(opponent_bid + 1, state.my_budget))
+
+    def choose_bid_round_3(self, state: AuctionState, my_bid: int, opponent_bid: int) -> int:
+        return max(my_bid, min(opponent_bid + 1, state.my_budget))
 
 
 BOT_CLASS = MyBot
 ```
 
 `AuctionState` includes the current item, both remaining budgets, prior bids,
-prior won items, the current round index, and total rounds. Bots do not see the
-other bot's current-round bid.
+prior won items, the current round index, and total rounds. In rounds 2 and 3,
+bots receive the standing bids explicitly through the method arguments and may
+only keep or raise their own previous bid. A raise must beat the opponent's
+current standing bid by at least `1_000_000` by default.

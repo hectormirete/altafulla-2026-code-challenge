@@ -1,0 +1,37 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-bots:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync environment
+        run: uv sync
+
+      - name: Compile package
+        run: python -m compileall auction_game
+
+      - name: Validate bot implementations
+        run: uv run python -m auction_game.validate_bots
+
+      - name: Run deterministic tournament smoke test
+        run: uv run python -m auction_game.main --seed 7

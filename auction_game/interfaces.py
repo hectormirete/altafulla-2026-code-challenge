@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+MIN_BID_INCREMENT = 1_000_000
+
 
 @dataclass(frozen=True, slots=True)
 class AuctionItem:
@@ -26,5 +28,13 @@ class AuctionState:
 
 class AuctionBot(ABC):
     @abstractmethod
-    def choose_bid(self, state: AuctionState) -> int:
+    def choose_bid_round_1(self, state: AuctionState) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def choose_bid_round_2(self, state: AuctionState, my_bid: int, opponent_bid: int) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def choose_bid_round_3(self, state: AuctionState, my_bid: int, opponent_bid: int) -> int:
         raise NotImplementedError
