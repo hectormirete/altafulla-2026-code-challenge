@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from shared.bot_loader import discover_bot_names, load_bot_module
-from shared.round_robin import run_round_robin
+from auction_game.bot_loader import discover_bot_names, load_bot_module
+from auction_game.round_robin import run_round_robin
 
 ITEMS = [
     {"name": "ml_workshop", "category": "ai", "value": 8},
@@ -69,8 +69,8 @@ def _score_items(items: list[dict[str, object]]) -> int:
 
 
 def play_match(left_name: str, right_name: str, budget: int = 100) -> MatchResult:
-    left_bot = load_bot_module("projects.auction_game.bots", left_name)
-    right_bot = load_bot_module("projects.auction_game.bots", right_name)
+    left_bot = load_bot_module("auction_game.bots", left_name)
+    right_bot = load_bot_module("auction_game.bots", right_name)
 
     left_budget = budget
     right_budget = budget

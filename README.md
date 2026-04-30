@@ -13,7 +13,7 @@ uv sync
 ## Run the demo
 
 ```bash
-uv run python -m projects.auction_game.main
+uv run python -m auction_game.main
 ```
 
 ## Bot API

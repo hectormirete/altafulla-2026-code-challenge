@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from projects.auction_game.engine import play_match, run_tournament
+from auction_game.engine import play_match, run_tournament
 
 
 def main() -> None:
