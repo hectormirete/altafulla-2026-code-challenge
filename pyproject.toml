@@ -1,0 +1,9 @@
+[project]
+name = "auction-game"
+version = "0.1.0"
+description = "Lightweight auction tournament engine for conference coding challenges"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv]
+package = false
