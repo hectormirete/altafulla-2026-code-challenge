@@ -4,7 +4,8 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 
-from auction_game.bot_loader import discover_bot_names, load_bot_module
+from auction_game.bot_loader import discover_bot_names, load_bot
+from auction_game.interfaces import AuctionItem, AuctionState
 from auction_game.round_robin import run_round_robin
 
 DEFAULT_BUDGET = 200_000_000
@@ -31,7 +32,7 @@ def generate_items(
     min_value: int = MIN_ITEM_VALUE,
     max_value: int = MAX_ITEM_VALUE,
     rng: random.Random | None = None,
-) -> list[dict[str, object]]:
+) -> list[AuctionItem]:
     if item_count <= 0:
         raise ValueError("item_count must be positive")
     if min_value <= 0 or max_value <= 0:
@@ -40,14 +41,14 @@ def generate_items(
         raise ValueError("min_value must be less than or equal to max_value")
 
     generator = rng or random.Random()
-    items: list[dict[str, object]] = []
+    items: list[AuctionItem] = []
     for index in range(item_count):
         items.append(
-            {
-                "name": f"item_{index + 1}",
-                "category": ITEM_CATEGORIES[index % len(ITEM_CATEGORIES)],
-                "value": generator.randint(min_value, max_value),
-            }
+            AuctionItem(
+                name=f"item_{index + 1}",
+                category=ITEM_CATEGORIES[index % len(ITEM_CATEGORIES)],
+                value=generator.randint(min_value, max_value),
+            )
         )
     return items
 
@@ -55,26 +56,26 @@ def generate_items(
 def _build_state(
     *,
     round_index: int,
-    item: dict[str, object],
+    item: AuctionItem,
     total_rounds: int,
     my_budget: int,
     opponent_budget: int,
-    my_items: list[dict[str, object]],
-    opponent_items: list[dict[str, object]],
+    my_items: list[AuctionItem],
+    opponent_items: list[AuctionItem],
     my_bids: list[int],
     opponent_bids: list[int],
-) -> dict[str, object]:
-    return {
-        "round_index": round_index,
-        "total_rounds": total_rounds,
-        "item": dict(item),
-        "my_budget": my_budget,
-        "opponent_budget": opponent_budget,
-        "my_items": [dict(entry) for entry in my_items],
-        "opponent_items": [dict(entry) for entry in opponent_items],
-        "my_bids": list(my_bids),
-        "opponent_bids": list(opponent_bids),
-    }
+) -> AuctionState:
+    return AuctionState(
+        round_index=round_index,
+        total_rounds=total_rounds,
+        item=item,
+        my_budget=my_budget,
+        opponent_budget=opponent_budget,
+        my_items=tuple(my_items),
+        opponent_items=tuple(opponent_items),
+        my_bids=tuple(my_bids),
+        opponent_bids=tuple(opponent_bids),
+    )
 
 
 def _validate_bid(bid: int, budget: int) -> int:
@@ -85,24 +86,24 @@ def _validate_bid(bid: int, budget: int) -> int:
     return min(bid, budget)
 
 
-def _score_items(items: list[dict[str, object]], money_left: int) -> int:
-    return sum(int(item["value"]) for item in items) + money_left
+def _score_items(items: list[AuctionItem], money_left: int) -> int:
+    return sum(item.value for item in items) + money_left
 
 
 def play_match(
     left_name: str,
     right_name: str,
     budget: int = DEFAULT_BUDGET,
-    items: list[dict[str, object]] | None = None,
+    items: list[AuctionItem] | None = None,
 ) -> MatchResult:
-    left_bot = load_bot_module("auction_game.bots", left_name)
-    right_bot = load_bot_module("auction_game.bots", right_name)
-    match_items = [dict(item) for item in (items or generate_items())]
+    left_bot = load_bot("auction_game.bots", left_name)
+    right_bot = load_bot("auction_game.bots", right_name)
+    match_items = list(items or generate_items())
 
     left_budget = budget
     right_budget = budget
-    left_items: list[dict[str, object]] = []
-    right_items: list[dict[str, object]] = []
+    left_items: list[AuctionItem] = []
+    right_items: list[AuctionItem] = []
     left_bids: list[int] = []
     right_bids: list[int] = []
     log: list[str] = []
@@ -156,12 +157,12 @@ def play_match(
             winner = "tie"
 
         log.append(
-            f"round={round_index + 1} item={item['name']} "
+            f"round={round_index + 1} item={item.name} "
             f"bids={left_name}:{left_bid} {right_name}:{right_bid} winner={winner}"
         )
 
-    left_value = sum(int(item["value"]) for item in left_items)
-    right_value = sum(int(item["value"]) for item in right_items)
+    left_value = sum(item.value for item in left_items)
+    right_value = sum(item.value for item in right_items)
     left_score = _score_items(left_items, left_budget)
     right_score = _score_items(right_items, right_budget)
     return MatchResult(

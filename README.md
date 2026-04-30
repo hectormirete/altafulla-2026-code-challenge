@@ -29,13 +29,21 @@ uv run python -m auction_game.main
 
 ## Bot API
 
-Auction bots expose:
+Challenge participants should implement a class that inherits from
+`auction_game.AuctionBot` and export it as `BOT_CLASS`.
 
 ```python
-def choose_bid(state: dict) -> int:
-    ...
+from auction_game import AuctionBot, AuctionState
+
+
+class MyBot(AuctionBot):
+    def choose_bid(self, state: AuctionState) -> int:
+        return min(state.item.value, state.my_budget)
+
+
+BOT_CLASS = MyBot
 ```
 
-The `state` includes the current item, both remaining budgets, prior bids,
+`AuctionState` includes the current item, both remaining budgets, prior bids,
 prior won items, the current round index, and total rounds. Bots do not see the
 other bot's current-round bid.
