@@ -11,8 +11,8 @@ from auction_game.round_robin import run_round_robin
 
 DEFAULT_BUDGET = 200_000_000
 DEFAULT_ITEM_COUNT = 20
-MIN_ITEM_VALUE = 11_000_000
-MAX_ITEM_VALUE = 20_000_000
+MIN_ITEM_VALUE = 8_000_000
+MAX_ITEM_VALUE = 16_000_000
 ITEM_CATEGORIES = ["ai", "web", "brand", "cloud", "dev", "data"]
 
 

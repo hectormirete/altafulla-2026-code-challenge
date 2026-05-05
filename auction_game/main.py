@@ -23,6 +23,10 @@ def _format_win_rate(win_rate: float) -> str:
     return f"{win_rate * 100:.1f}%"
 
 
+def _format_int(value: int) -> str:
+    return f"{value:_}"
+
+
 def _build_leaderboard_section(
     standings: list[dict[str, object]],
     *,
@@ -45,7 +49,7 @@ def _build_leaderboard_section(
     for index, row in enumerate(standings, start=1):
         lines.append(
             f"| {index} | {row['user_name']} | {row['bot']} | {_format_win_rate(float(row['win_rate']))} | "
-            f"{row['wins']} | {row['matches']} | {row['score']} |"
+            f"{row['wins']} | {row['matches']} | {_format_int(int(row['score']))} |"
         )
     lines.extend(["", LEADERBOARD_END])
     return "\n".join(lines)
