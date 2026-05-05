@@ -30,13 +30,14 @@ def _build_leaderboard_section(
     item_count: int,
     min_value: int,
     max_value: int,
-    seed: int,
+    seed: int | None,
 ) -> str:
+    seed_label = seed if seed is not None else "random"
     lines = [
         LEADERBOARD_START,
         "## Latest Leaderboard",
         "",
-        f"Last run config: `budget={budget}` `items={item_count}` `min_value={min_value}` `max_value={max_value}` `seed={seed}`",
+        f"Last run config: `budget={budget}` `items={item_count}` `min_value={min_value}` `max_value={max_value}` `seed={seed_label}`",
         "",
         "| Rank | User | Bot | Win Rate | Wins | Matches | Score |",
         "| --- | --- | --- | --- | --- | --- | --- |",
@@ -57,7 +58,7 @@ def update_readme_leaderboard(
     item_count: int,
     min_value: int,
     max_value: int,
-    seed: int,
+    seed: int | None,
 ) -> None:
     leaderboard = _build_leaderboard_section(
         standings,
@@ -87,7 +88,7 @@ def main() -> None:
     parser.add_argument("--items", type=int, default=DEFAULT_ITEM_COUNT, help="Number of items")
     parser.add_argument("--min-value", type=int, default=MIN_ITEM_VALUE, help="Minimum item value")
     parser.add_argument("--max-value", type=int, default=MAX_ITEM_VALUE, help="Maximum item value")
-    parser.add_argument("--seed", type=int, default=7, help="Random seed for the item slate")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for the item slate")
     args = parser.parse_args()
 
     standings = run_tournament(

@@ -3,15 +3,14 @@
 <!-- leaderboard:start -->
 ## Latest Leaderboard
 
-Last run config: `budget=200000000` `items=20` `min_value=11000000` `max_value=20000000` `seed=7`
+Last run config: `budget=200000000` `items=20` `min_value=11000000` `max_value=20000000` `seed=random`
 
 | Rank | User | Bot | Win Rate | Wins | Matches | Score |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | demo-bots | greedy_value | 75.0% | 3 | 4 | 747577338 |
-| 2 | demo-bots | budget_burner | 75.0% | 3 | 4 | 695181912 |
-| 3 | demo-bots | copycat_bidder | 50.0% | 2 | 4 | 506397436 |
-| 4 | demo-bots | steady_bidder | 25.0% | 1 | 4 | 777478977 |
-| 5 | demo-bots | random_bidder | 25.0% | 1 | 4 | 415809840 |
+| 1 | demo-bots | greedy_value | 66.7% | 2 | 3 | 572053746 |
+| 2 | demo-bots | copycat_bidder | 66.7% | 2 | 3 | 416027900 |
+| 3 | demo-bots | steady_bidder | 33.3% | 1 | 3 | 635122566 |
+| 4 | demo-bots | random_bidder | 33.3% | 1 | 3 | 389498773 |
 
 <!-- leaderboard:end -->
 
