@@ -66,6 +66,9 @@ Bots are discovered from this folder structure:
 auction_game/bots/<user-name>/<bot-name>.py
 ```
 
+Each participant may submit one or more bots under their own `<user-name>`
+directory.
+
 The repository includes sample bots under `auction_game/bots/demo-bots/`.
 
 ```python
@@ -91,3 +94,21 @@ prior won items, the current round index, and total rounds. In rounds 2 and 3,
 bots receive the standing bids explicitly through the method arguments and may
 only keep or raise their own previous bid. A raise must beat the opponent's
 current standing bid by at least `1_000_000` by default.
+
+## Submission Rules
+
+- Submit only bots under your own directory, using
+  `auction_game/bots/<user-name>/<bot-name>.py`. You may submit multiple bot
+  files under your own `<user-name>` directory.
+- Do not modify the engine, scoring, interfaces, validator, loader, leaderboard,
+  demo bots, or other participants' files as part of a ranked submission.
+- Your bot may only use the information provided through `AuctionState`,
+  `my_bid`, and `opponent_bid`.
+- Bots must not modify repository or process state from inside bot code,
+  including monkey-patching imported modules, globals, builtins, or
+  `sys.modules`.
+- Bots must not use the network, shell commands, subprocesses, filesystem
+  access, environment variables, or hidden repository data at runtime.
+- Submissions should pass `python -m auction_game.validate_bots`.
+
+Full participant and Codex-specific rules are documented in [AGENTS.md](AGENTS.md).
