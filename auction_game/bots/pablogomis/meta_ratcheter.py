@@ -45,6 +45,7 @@ class MetaRatcheterBot(AuctionBot):
         self._items_seen: list[AuctionItem] = []
         self._retaliator = False
         self._high_open_samples = 0
+        self._mid_open_samples = 0
         self._round_2_seen: set[int] = set()
 
     def _remember(self, state: AuctionState) -> None:
@@ -55,8 +56,11 @@ class MetaRatcheterBot(AuctionBot):
         if state.round_index in self._round_2_seen:
             return
         self._round_2_seen.add(state.round_index)
-        if opponent_bid >= state.item.value * 80 // 100:
+        value = max(1, state.item.value)
+        if opponent_bid >= value * 80 // 100:
             self._high_open_samples += 1
+        if value * 60 // 100 <= opponent_bid < value * 90 // 100:
+            self._mid_open_samples += 1
 
     def _detect_retaliator(self, state: AuctionState) -> bool:
         if self._retaliator:
@@ -133,6 +137,16 @@ class MetaRatcheterBot(AuctionBot):
             target = opponent_bid + MIN_BID_INCREMENT
             return max(my_bid, target) if target <= state.my_budget else my_bid
         if opponent_bid <= my_bid:
+            op_count, _ = _category_state(state.opponent_items, state.item.category)
+            if (
+                opponent_bid < my_bid
+                and op_count > 0
+                and self._mid_open_samples >= 3
+                and opponent_bid < state.item.value * 105 // 100
+            ):
+                target = my_bid + 3 * MIN_BID_INCREMENT
+                if target <= state.my_budget:
+                    return target
             return my_bid
         target = opponent_bid + MIN_BID_INCREMENT
         if target > self._ceiling(state) or target > state.my_budget:
