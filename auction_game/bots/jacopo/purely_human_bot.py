@@ -12,7 +12,7 @@ OPPONENT_THRESHOLD_DECAY = 0.8
 MAX_NORM_BUDGET = EXPECTED_ITEM_VALUE * 2
 
 
-class NotYourAverageRobot(AuctionBot):
+class PurelyHumanBot(AuctionBot):
     # sum(won item values) + category bonuses + money left
 
     def __init__(self) -> None:
@@ -138,4 +138,4 @@ class NotYourAverageRobot(AuctionBot):
         return int(possible_bids[possible_idx]["candidate_bid"])
 
 
-BOT_CLASS = NotYourAverageRobot
+BOT_CLASS = PurelyHumanBot
