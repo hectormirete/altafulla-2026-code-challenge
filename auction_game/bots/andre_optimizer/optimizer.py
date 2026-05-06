@@ -1,0 +1,163 @@
+from __future__ import annotations
+
+from auction_game import AuctionBot, AuctionItem, AuctionState, MIN_BID_INCREMENT
+
+
+class AndreOptimizerBot(AuctionBot):
+    def __init__(self) -> None:
+        self._opponent_overpay_events = 0
+        self._opponent_chase_events = 0
+        self._opponent_led_round_2 = False
+        self._expensive_raise_events = 0
+
+    def choose_bid_round_1(self, state: AuctionState) -> int:
+        ceiling = self._ceiling(state, opponent_bid=0, final_round=False)
+        opener = min(ceiling, int(self._own_effective_value(state) * self._opening_ratio(state)))
+        if self._opponent_overpay_events:
+            opener = min(opener, int(state.item.value * 0.84))
+        if self._expensive_raise_events >= 2:
+            opener = max(opener, min(ceiling, int(state.item.value * 1.10)))
+        return self._clamp(opener, 0, state.my_budget)
+
+    def choose_bid_round_2(self, state: AuctionState, my_bid: int, opponent_bid: int) -> int:
+        self._opponent_led_round_2 = opponent_bid > my_bid
+        self._observe_opponent_bid(state, opponent_bid)
+        return self._raise_if_worthwhile(state, my_bid, opponent_bid, final_round=False)
+
+    def choose_bid_round_3(self, state: AuctionState, my_bid: int, opponent_bid: int) -> int:
+        if self._opponent_led_round_2 and opponent_bid >= my_bid + MIN_BID_INCREMENT:
+            self._opponent_chase_events += 1
+        if my_bid < opponent_bid and opponent_bid >= int(state.item.value * 1.12):
+            self._expensive_raise_events += 1
+        self._observe_opponent_bid(state, opponent_bid)
+        return self._raise_if_worthwhile(state, my_bid, opponent_bid, final_round=True)
+
+    def _raise_if_worthwhile(
+        self,
+        state: AuctionState,
+        my_bid: int,
+        opponent_bid: int,
+        *,
+        final_round: bool,
+    ) -> int:
+        if opponent_bid <= my_bid:
+            return min(my_bid, state.my_budget)
+
+        required = opponent_bid + MIN_BID_INCREMENT
+        if required > state.my_budget:
+            return min(my_bid, state.my_budget)
+
+        ceiling = self._ceiling(state, opponent_bid=opponent_bid, final_round=final_round)
+        if required <= ceiling:
+            return required
+        return min(my_bid, state.my_budget)
+
+    def _ceiling(self, state: AuctionState, *, opponent_bid: int, final_round: bool) -> int:
+        own_value = self._own_effective_value(state)
+        opponent_value = self._opponent_effective_value(state)
+        opponent_profit = max(0, opponent_value - opponent_bid)
+
+        denial_weight = 0.56 if final_round else 0.30
+        if self._opponent_overpay_events:
+            denial_weight *= 0.62
+        if self._opponent_chase_events >= 2:
+            denial_weight *= 0.72
+
+        ceiling = own_value + int(opponent_profit * denial_weight)
+        ceiling = min(ceiling, self._budget_pacing_ceiling(state))
+        return self._clamp(ceiling, 0, state.my_budget)
+
+    def _own_effective_value(self, state: AuctionState) -> int:
+        marginal = self._marginal_category_bonus(state.my_items, state.item)
+        future = self._future_category_option_value(state, state.my_items)
+        endgame = self._endgame_pressure(state)
+        return state.item.value + marginal + future + endgame + 250_000
+
+    def _opponent_effective_value(self, state: AuctionState) -> int:
+        marginal = self._marginal_category_bonus(state.opponent_items, state.item)
+        future = self._future_category_option_value(state, state.opponent_items)
+        return state.item.value + marginal + int(future * 0.80)
+
+    def _budget_pacing_ceiling(self, state: AuctionState) -> int:
+        rounds_left = max(1, state.total_rounds - state.round_index)
+        remaining_after_this = rounds_left - 1
+        if remaining_after_this == 0:
+            return state.my_budget
+
+        expected_future_need = remaining_after_this * 9_250_000
+        spendable = max(state.my_budget - expected_future_need, state.my_budget // rounds_left)
+
+        item_quality = state.item.value / 16_000_000
+        if item_quality >= 0.88:
+            spendable += int(state.item.value * 0.50)
+        elif item_quality <= 0.62:
+            spendable -= int(state.item.value * 0.22)
+
+        if state.my_budget > state.opponent_budget + 20_000_000:
+            spendable += 2_500_000
+        elif state.my_budget + 20_000_000 < state.opponent_budget:
+            spendable -= 1_500_000
+
+        return self._clamp(spendable, 0, state.my_budget)
+
+    def _future_category_option_value(self, state: AuctionState, owned_items: tuple[AuctionItem, ...]) -> int:
+        future_same_category = 0
+        index = state.round_index + 6
+        while index < state.total_rounds:
+            future_same_category += 1
+            index += 6
+        if future_same_category == 0:
+            return 0
+
+        count = sum(1 for item in owned_items if item.category == state.item.category)
+        if count == 0:
+            return int(state.item.value * 0.080 * future_same_category)
+        if count == 1:
+            return int(state.item.value * 0.065 * future_same_category)
+        if count == 2:
+            return int(state.item.value * 0.045 * future_same_category)
+        return int(state.item.value * 0.018 * future_same_category)
+
+    def _endgame_pressure(self, state: AuctionState) -> int:
+        rounds_left = state.total_rounds - state.round_index
+        if rounds_left <= 2 and state.my_budget > state.opponent_budget:
+            return min(2_500_000, (state.my_budget - state.opponent_budget) // 7)
+        if rounds_left <= 3 and state.my_budget > 22_000_000:
+            return 1_250_000
+        return 0
+
+    def _marginal_category_bonus(self, items: tuple[AuctionItem, ...], item: AuctionItem) -> int:
+        category_value = 0
+        category_count = 0
+        for owned in items:
+            if owned.category == item.category:
+                category_value += owned.value
+                category_count += 1
+        current_bonus = int(category_value * self._category_bonus_rate(category_count))
+        next_bonus = int((category_value + item.value) * self._category_bonus_rate(category_count + 1))
+        return next_bonus - current_bonus
+
+    def _observe_opponent_bid(self, state: AuctionState, opponent_bid: int) -> None:
+        if opponent_bid > self._opponent_effective_value(state) + 1_750_000:
+            self._opponent_overpay_events += 1
+
+    def _opening_ratio(self, state: AuctionState) -> float:
+        if self._opponent_chase_events >= 2:
+            return 0.74
+        if self._opponent_overpay_events:
+            return 0.72
+        if state.round_index <= 2:
+            return 0.82
+        return 0.79
+
+    @staticmethod
+    def _category_bonus_rate(item_count: int) -> float:
+        raw_rate = 0.06 * max(0, item_count - 1) + 0.02 * max(0, item_count - 3)
+        return min(raw_rate, 0.30)
+
+    @staticmethod
+    def _clamp(value: int | float, lower: int, upper: int) -> int:
+        return int(min(max(value, lower), upper))
+
+
+BOT_CLASS = AndreOptimizerBot
