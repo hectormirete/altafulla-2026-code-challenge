@@ -7,8 +7,10 @@ from auction_game.engine import (
 )
 
 EXPECTED_ITEM_VALUE = (MIN_ITEM_VALUE + MAX_ITEM_VALUE) / 2  # 12_000_000
-OPPONENT_THRESHOLD = 0.5 * EXPECTED_ITEM_VALUE
-OPPONENT_THRESHOLD_DECAY = 0.8
+OPPONENT_THRESHOLD = 1.0 * EXPECTED_ITEM_VALUE  # Opponent's budget per item threshold
+OPPONENT_THRESHOLD_DECAY = (
+    0.3  # Decay we apply to our bid index if opponent's threshold is smaller
+)
 MAX_NORM_BUDGET = EXPECTED_ITEM_VALUE * 2
 
 
@@ -136,6 +138,10 @@ class PurelyHumanBot(AuctionBot):
         )
 
         return int(possible_bids[possible_idx]["candidate_bid"])
+
+        # return int(possible_bids[-1]["candidate_bid"])
+
+        # return int(possible_bids[len(possible_bids) // 2]["candidate_bid"])
 
 
 BOT_CLASS = PurelyHumanBot
