@@ -33,7 +33,7 @@ class NotYourAverageRobot(AuctionBot):
         return budget / items_left
 
     def _possible_bids(self, state: AuctionState, min_bid: int = 1) -> List[int]:
-        bid_ratios = [b / 10 for b in range(1, 14)]
+        bid_ratios = [b / 100 for b in range(1, 100)]
         no_bid_value = self._no_buy_value(state)
 
         bids = []
@@ -93,12 +93,12 @@ class NotYourAverageRobot(AuctionBot):
         )
 
         norm_budget = (
-            min(budget_per_item, EXPECTED_ITEM_VALUE * 2) / EXPECTED_ITEM_VALUE * 2
+            min(budget_per_item, EXPECTED_ITEM_VALUE * 1.5) / EXPECTED_ITEM_VALUE * 1.5
         )
 
         possible_idx = int(round(norm_budget))
 
-        possible_bids[possible_idx]
+        return possible_bids[possible_idx]
 
 
 BOT_CLASS = NotYourAverageRobot
