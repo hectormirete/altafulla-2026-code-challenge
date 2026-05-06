@@ -31,7 +31,7 @@ jobs:
         run: uv sync
 
       - name: Regenerate leaderboard
-        run: uv run python -m auction_game.main --seed 8474923
+        run: uv run python -m auction_game.main --seed 381982
 
       - name: Commit README if changed
         run: |
