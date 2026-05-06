@@ -3,12 +3,13 @@ from auction_game.interfaces import AuctionBot, AuctionState, MIN_BID_INCREMENT
 from auction_game.engine import (
     MIN_ITEM_VALUE,
     MAX_ITEM_VALUE,
-    DEFAULT_ITEM_COUNT,
     _score_items,
 )
 
 EXPECTED_ITEM_VALUE = (MIN_ITEM_VALUE + MAX_ITEM_VALUE) / 2  # 12_000_000
-EXPECTED_TOTAL_VALUE = EXPECTED_ITEM_VALUE * DEFAULT_ITEM_COUNT  # 240_000_000
+OPPONENT_THRESHOLD = 0.5 * EXPECTED_ITEM_VALUE
+OPPONENT_THRESHOLD_DECAY = 0.8
+MAX_NORM_BUDGET = EXPECTED_ITEM_VALUE * 2
 
 
 class NotYourAverageRobot(AuctionBot):
@@ -91,13 +92,18 @@ class NotYourAverageRobot(AuctionBot):
                 if state.opponent_budget < possible_bid["candidate_bid"]:
                     return int(possible_bid["candidate_bid"])
 
-        budget_per_item = self._budget_per_item(
+        my_budget_per_item = self._budget_per_item(
             state.my_budget, state.round_index, state.total_rounds
         )
 
-        norm_budget = min(budget_per_item, EXPECTED_ITEM_VALUE * 2) / (
-            EXPECTED_ITEM_VALUE * 2
+        opponent_budget_per_item = self._budget_per_item(
+            state.opponent_budget, state.round_index, state.total_rounds
         )
+
+        norm_budget = min(my_budget_per_item, MAX_NORM_BUDGET) / (MAX_NORM_BUDGET)
+
+        if opponent_budget_per_item < OPPONENT_THRESHOLD:
+            norm_budget *= OPPONENT_THRESHOLD_DECAY
 
         possible_idx = min(
             int(round(norm_budget * len(possible_bids))), len(possible_bids) - 1
