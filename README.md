@@ -7,32 +7,34 @@ Last run config: `budget=200000000` `items=20` `min_value=8000000` `max_value=16
 
 | Rank | User | Bot | Win Rate | Wins | Matches | Score |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | blai | mango | 96.0% | 24 | 25 | 5_863_510_077 |
-| 2 | ruben-abad | aggressive_bully | 96.0% | 24 | 25 | 5_839_116_136 |
-| 3 | ruben-abad | tit_for_tat | 80.0% | 20 | 25 | 6_008_662_927 |
-| 4 | jaume | king | 80.0% | 20 | 25 | 5_518_398_195 |
-| 5 | miguellobato84 | value_sniper | 76.0% | 19 | 25 | 6_536_255_551 |
-| 6 | ruben-abad | breakpoint_denier | 76.0% | 19 | 25 | 6_175_456_358 |
-| 7 | ruben-abad | budget_aware_bidder | 72.0% | 18 | 25 | 5_926_797_490 |
-| 8 | ruben-abad | value_hunter | 68.0% | 17 | 25 | 6_462_790_443 |
-| 9 | miguellobato84 | late_raiser | 68.0% | 17 | 25 | 6_376_621_342 |
-| 10 | ruben-abad | zero_intelligence_constrainer_rng | 60.0% | 15 | 25 | 6_463_940_999 |
-| 11 | demo-bots | copycat_bidder | 56.0% | 14 | 25 | 5_087_233_904 |
-| 12 | miguellobato84 | noisy_opportunist | 52.0% | 13 | 25 | 5_281_624_917 |
-| 13 | demo-bots | greedy_value | 52.0% | 13 | 25 | 4_641_273_269 |
-| 14 | martin | value_trap | 40.0% | 10 | 25 | 4_639_478_875 |
-| 15 | ruben-abad | zero_intelligence_constrainer | 36.0% | 9 | 25 | 6_167_985_146 |
-| 16 | miguellobato84 | copycat_counterbidder | 36.0% | 9 | 25 | 5_854_234_916 |
-| 17 | miguellobato84 | balanced_portfolio | 36.0% | 9 | 25 | 5_730_859_788 |
-| 18 | miguellobato84 | anti_leader | 36.0% | 9 | 25 | 4_710_271_830 |
-| 19 | miguellobato84 | scarcity_aware | 36.0% | 9 | 25 | 4_628_328_606 |
-| 20 | demo-bots | steady_bidder | 36.0% | 9 | 25 | 4_545_059_864 |
-| 21 | ruben-abad | patient_sniper | 28.0% | 7 | 25 | 6_072_608_171 |
-| 22 | miguellobato84 | cash_preserver | 28.0% | 7 | 25 | 4_655_622_906 |
-| 23 | ruben-abad | category_synergist | 24.0% | 6 | 25 | 5_316_080_798 |
-| 24 | miguellobato84 | deterministic_heuristic | 16.0% | 4 | 25 | 1_970_123_182 |
-| 25 | miguellobato84 | early_domination | 8.0% | 2 | 25 | 2_655_774_097 |
-| 26 | demo-bots | random_bidder | 8.0% | 2 | 25 | 959_621_425 |
+| 1 | hanna | bellman-bot | 96.3% | 26 | 27 | 6_539_805_900 |
+| 2 | jaume | codex_fun | 96.3% | 26 | 27 | 6_231_629_363 |
+| 3 | ruben-abad | aggressive_bully | 92.6% | 25 | 27 | 6_208_971_839 |
+| 4 | blai | mango | 85.2% | 23 | 27 | 6_234_034_200 |
+| 5 | ruben-abad | tit_for_tat | 74.1% | 20 | 27 | 6_635_352_253 |
+| 6 | ruben-abad | breakpoint_denier | 74.1% | 20 | 27 | 6_612_000_099 |
+| 7 | jaume | king | 74.1% | 20 | 27 | 5_959_940_043 |
+| 8 | miguellobato84 | value_sniper | 66.7% | 18 | 27 | 6_796_138_004 |
+| 9 | miguellobato84 | late_raiser | 63.0% | 17 | 27 | 6_892_075_567 |
+| 10 | ruben-abad | value_hunter | 59.3% | 16 | 27 | 6_895_320_779 |
+| 11 | ruben-abad | budget_aware_bidder | 59.3% | 16 | 27 | 6_338_954_318 |
+| 12 | demo-bots | copycat_bidder | 59.3% | 16 | 27 | 5_517_607_567 |
+| 13 | ruben-abad | zero_intelligence_constrainer_rng | 55.6% | 15 | 27 | 6_826_470_319 |
+| 14 | demo-bots | greedy_value | 48.1% | 13 | 27 | 5_016_143_929 |
+| 15 | ruben-abad | zero_intelligence_constrainer | 40.7% | 11 | 27 | 6_545_529_327 |
+| 16 | miguellobato84 | scarcity_aware | 40.7% | 11 | 27 | 4_972_715_158 |
+| 17 | martin | value_trap | 40.7% | 11 | 27 | 4_832_597_536 |
+| 18 | miguellobato84 | noisy_opportunist | 37.0% | 10 | 27 | 5_378_057_099 |
+| 19 | miguellobato84 | anti_leader | 37.0% | 10 | 27 | 5_071_794_212 |
+| 20 | miguellobato84 | balanced_portfolio | 33.3% | 9 | 27 | 6_154_512_740 |
+| 21 | demo-bots | steady_bidder | 33.3% | 9 | 27 | 5_084_616_155 |
+| 22 | ruben-abad | patient_sniper | 29.6% | 8 | 27 | 6_524_326_084 |
+| 23 | miguellobato84 | cash_preserver | 29.6% | 8 | 27 | 4_941_148_706 |
+| 24 | miguellobato84 | copycat_counterbidder | 25.9% | 7 | 27 | 6_050_751_601 |
+| 25 | ruben-abad | category_synergist | 14.8% | 4 | 27 | 5_730_375_953 |
+| 26 | miguellobato84 | deterministic_heuristic | 14.8% | 4 | 27 | 2_058_887_366 |
+| 27 | miguellobato84 | early_domination | 11.1% | 3 | 27 | 3_070_832_238 |
+| 28 | demo-bots | random_bidder | 7.4% | 2 | 27 | 1_229_222_333 |
 
 <!-- leaderboard:end -->
 
