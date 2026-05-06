@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from auction_game.interfaces import AuctionBot, AuctionState, MIN_BID_INCREMENT
 from auction_game.engine import (
     MIN_ITEM_VALUE,
@@ -25,15 +25,17 @@ class NotYourAverageRobot(AuctionBot):
         buy_score, _ = _score_items(
             list(state.my_items) + [state.item], max(state.my_budget - bid, 0)
         )
-        print(buy_score)
         return buy_score
 
     def _budget_per_item(self, budget: int, round_index: int, rounds: int) -> float:
         items_left = rounds - round_index + 1
         return budget / items_left
 
-    def _possible_bids(self, state: AuctionState, min_bid: int = 1) -> List[int]:
+    def _possible_bids(
+        self, state: AuctionState, min_bid: int = 1
+    ) -> List[Dict[str, int]]:
         bid_ratios = [b / 100 for b in range(1, 100)]
+
         no_bid_value = self._no_buy_value(state)
 
         bids = []
@@ -42,7 +44,7 @@ class NotYourAverageRobot(AuctionBot):
             candidate_bid = br * state.item.value
             if candidate_bid <= min_bid:
                 continue
-            if candidate_bid <= state.my_budget:
+            if candidate_bid > state.my_budget:
                 break
             bid_value = self._buy_value(state, candidate_bid)
             if bid_value > no_bid_value:
@@ -54,6 +56,7 @@ class NotYourAverageRobot(AuctionBot):
             and (budget_value := self._buy_value(state, state.my_budget)) > no_bid_value
         ):
             bids.append({"candidate_bid": state.my_budget, "bid_score": budget_value})
+
         return bids
 
     def choose_bid_round_1(self, state: AuctionState) -> int:
@@ -69,7 +72,7 @@ class NotYourAverageRobot(AuctionBot):
                 state, max(my_bid + MIN_BID_INCREMENT, opponent_bid)
             )
             if len(possible_bids) > 0:
-                return possible_bids[0]
+                return int(possible_bids[0]["candidate_bid"])
             else:
                 return my_bid
 
@@ -83,22 +86,24 @@ class NotYourAverageRobot(AuctionBot):
         if len(possible_bids) == 0:
             return my_bid
 
-        if state.opponent_budget < possible_bids[-1]:
+        if state.opponent_budget < possible_bids[-1]["candidate_bid"]:
             for possible_bid in possible_bids:
-                if state.opponent_budget < possible_bid:
-                    return possible_bid
+                if state.opponent_budget < possible_bid["candidate_bid"]:
+                    return int(possible_bid["candidate_bid"])
 
         budget_per_item = self._budget_per_item(
             state.my_budget, state.round_index, state.total_rounds
         )
 
-        norm_budget = (
-            min(budget_per_item, EXPECTED_ITEM_VALUE * 1.5) / EXPECTED_ITEM_VALUE * 1.5
+        norm_budget = min(budget_per_item, EXPECTED_ITEM_VALUE * 2) / (
+            EXPECTED_ITEM_VALUE * 2
         )
 
-        possible_idx = int(round(norm_budget))
+        possible_idx = min(
+            int(round(norm_budget * len(possible_bids))), len(possible_bids) - 1
+        )
 
-        return possible_bids[possible_idx]
+        return int(possible_bids[possible_idx]["candidate_bid"])
 
 
 BOT_CLASS = NotYourAverageRobot
