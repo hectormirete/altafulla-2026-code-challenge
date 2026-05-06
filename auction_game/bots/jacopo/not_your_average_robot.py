@@ -19,22 +19,32 @@ class NotYourAverageRobot(AuctionBot):
         pass
 
     def _no_buy_value(self, state: AuctionState):
+        """Calculates the score of not buying any item"""
         no_buy_score, _ = _score_items(state.my_items, state.my_budget)
         return no_buy_score
 
     def _buy_value(self, state: AuctionState, bid: int) -> float:
+        """Calculates the score of buying the current item with the provided bid"""
         buy_score, _ = _score_items(
             list(state.my_items) + [state.item], max(state.my_budget - bid, 0)
         )
         return buy_score
 
     def _budget_per_item(self, budget: int, round_index: int, rounds: int) -> float:
+        """Calculates a budget per item left
+
+        If this is higher than expected, it means that we are under spending and if lower,
+        over spending
+        """
         items_left = rounds - round_index + 1
         return budget / items_left
 
     def _possible_bids(
         self, state: AuctionState, min_bid: int = 1
     ) -> List[Dict[str, int]]:
+        """Calculates a list of possible bids. These bids are calculated using score values. Negative
+        values are discarded as it makes it more interesting to not bid.
+        """
         bid_ratios = [b / 100 for b in range(1, 100)]
 
         no_bid_value = self._no_buy_value(state)
@@ -61,11 +71,13 @@ class NotYourAverageRobot(AuctionBot):
         return bids
 
     def choose_bid_round_1(self, state: AuctionState) -> int:
+        """I don't care about round 1 really"""
         return 5
 
     def choose_bid_round_2(
         self, state: AuctionState, my_bid: int, opponent_bid: int
     ) -> int:
+        """Also not about round 2, as likely we can't learn much from it"""
         if my_bid >= opponent_bid:
             return my_bid
         else:
@@ -80,6 +92,20 @@ class NotYourAverageRobot(AuctionBot):
     def choose_bid_round_3(
         self, state: AuctionState, my_bid: int, opponent_bid: int
     ) -> int:
+        """For this round, we have to be smart!
+
+        The general idea is simple:
+
+        - Calculate all possible bids, ordered from smallest to greatest bid.
+        - If we have no possible bid, we just return the previous bid.
+        - If our opponents budget is lower than some of our candidate bids, return the smallest bid that fulfills it.
+        - Otherwise, pick a good bid that maximizes value we get out of it (low bid, high return)
+            - Picking this is a bit tricky: if we have a lot of budget per item, means we are underspending it
+                - We then increase our bidding as buying things helps us achieving our objectives
+                - If the opponent budget per item is very low, it means that they have spent a lot of money already
+                  and we consider that we can lower our bids so to also extract the biggest value
+
+        """
         possible_bids = self._possible_bids(
             state, max(my_bid + MIN_BID_INCREMENT, opponent_bid)
         )
